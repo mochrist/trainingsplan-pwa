@@ -1,5 +1,5 @@
 // Bei jeder Änderung an App-Dateien erhöhen, sonst bekommt das iPhone die neue Version nicht.
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 const CACHE_NAME = `trainingsplan-${APP_VERSION}`;
 
 // Alle Pfade relativ zu sw.js. test/precache.test.js prüft, dass die Liste vollständig ist.
@@ -15,6 +15,7 @@ const PRECACHE = [
   './js/app.js',
   './js/components/exercise-picker.js',
   './js/components/icons.js',
+  './js/components/rest-timer.js',
   './js/components/sheet.js',
   './js/components/toast.js',
   './js/components/workout-editor.js',

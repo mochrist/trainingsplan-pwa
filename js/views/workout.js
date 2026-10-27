@@ -4,6 +4,7 @@ import { esc } from '../lib/html.js';
 import { countFilledSets } from '../lib/workout.js';
 import { formatDuration } from '../lib/time.js';
 import { mountWorkoutEditor } from '../components/workout-editor.js';
+import { mountRestTimer, unlockAudio } from '../components/rest-timer.js';
 import { confirmDialog, promptDialog } from '../components/sheet.js';
 import { toastError } from '../components/toast.js';
 import { icons } from '../components/icons.js';
@@ -29,7 +30,10 @@ export function render(root) {
       <button type="button" class="btn btn-primary" data-action="finish">Beenden</button>
     </header>
     <div data-editor></div>
+    <div data-rest-timer hidden></div>
   `;
+
+  const restTimer = mountRestTimer(root.querySelector('[data-rest-timer]'));
 
   const save = (structural) => {
     if (structural) store.saveWorkout(workout).catch(toastError);
@@ -40,8 +44,14 @@ export function render(root) {
     workout,
     mode: 'live',
     onChange: save,
+    onSetDone: () => restTimer.start(store.getSettings().restSeconds),
     getPrSetIds: () => new Set(),
   });
+
+  // Audio-Kontext bei Taps entsperren bzw. nach Hintergrund wieder aufwecken (iOS)
+  root.addEventListener('pointerdown', unlockAudio);
+
+  const wakeLock = keepScreenOn();
 
   const clock = root.querySelector('[data-clock]');
   const clockTimer = setInterval(() => {
@@ -51,6 +61,8 @@ export function render(root) {
   cleanup = [
     () => clearInterval(clockTimer),
     () => editor.destroy(),
+    () => restTimer.destroy(),
+    () => wakeLock.release(),
     () => store.flushPendingSaves(),
   ];
 
@@ -92,6 +104,37 @@ async function finish(workout) {
   } catch (err) {
     toastError(err);
   }
+}
+
+/** Bildschirm im Workout anlassen. Wird beim Zurückkehren in die App neu angefordert. */
+function keepScreenOn() {
+  let sentinel = null;
+  let released = false;
+
+  async function request() {
+    if (released || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try {
+      sentinel = await navigator.wakeLock.request('screen');
+      if (released) sentinel.release().catch(() => {});
+    } catch {
+      // Nicht unterstützt oder abgelehnt: still ignorieren
+    }
+  }
+
+  function onVisibility() {
+    if (document.visibilityState === 'visible') request();
+  }
+
+  document.addEventListener('visibilitychange', onVisibility);
+  request();
+
+  return {
+    release() {
+      released = true;
+      document.removeEventListener('visibilitychange', onVisibility);
+      sentinel?.release().catch(() => {});
+    },
+  };
 }
 
 export function destroy() {

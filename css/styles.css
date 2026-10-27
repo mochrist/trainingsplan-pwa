@@ -998,3 +998,114 @@ a.list-item {
   width: 18px;
   height: 18px;
 }
+
+/* ---------- Pausentimer ---------- */
+
+.rest-timer-slot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  padding: 8px calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 8px) calc(var(--safe-left) + 12px);
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  border-top: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.rest-timer-slot[hidden] {
+  display: none;
+}
+
+body.has-rest-timer .view {
+  padding-bottom: calc(var(--safe-bottom) + 100px);
+}
+
+.rest-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius);
+}
+
+.rest-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-left: 4px;
+}
+
+.rest-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.rest-time {
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.rest-timer .btn {
+  padding: 0 10px;
+}
+
+.rest-timer.is-done {
+  animation: rest-blink 0.6s steps(2, start) infinite;
+}
+
+.rest-timer.is-done .rest-label,
+.rest-timer.is-done .rest-time {
+  color: var(--warning);
+}
+
+@keyframes rest-blink {
+  to {
+    background: color-mix(in srgb, var(--warning) 35%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rest-timer.is-done {
+    animation: none;
+    background: color-mix(in srgb, var(--warning) 30%, transparent);
+  }
+}
+
+/* ---------- Einstellungen ---------- */
+
+.settings-group h2 {
+  margin-top: 0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row:last-of-type {
+  border-bottom: 0;
+}
+
+.setting-select {
+  width: auto;
+  min-width: 110px;
+}
+
+.toggle {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--accent);
+}
+
+.app-version {
+  text-align: center;
+  margin-top: 24px;
+}
