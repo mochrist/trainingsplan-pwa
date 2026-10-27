@@ -4,6 +4,7 @@ import { openDatabase, readAll, write, keyOf, STORES } from './db.js';
 import { cleanName, normalizeName, findByName } from './lib/normalize.js';
 import { usageStats } from './lib/history.js';
 import { newId } from './lib/html.js';
+import { createItem, createWorkout, finalizeWorkout } from './lib/workout.js';
 
 const STARTER_EXERCISES = [
   'Bankdrücken (Langhantel)',
@@ -218,4 +219,102 @@ export async function duplicateTemplate(id) {
 
 export function deleteTemplate(id) {
   return commit([del('templates', id)]);
+}
+
+// ---------- Workouts ----------
+
+const SAVE_DELAY_MS = 300;
+const pendingSaves = new Map();
+let saveTimer = null;
+
+export function getWorkouts() {
+  return [...cache.workouts.values()];
+}
+
+/** Abgeschlossene Workouts, chronologisch aufsteigend. */
+export function getFinishedWorkouts() {
+  return getWorkouts()
+    .filter((w) => w.status === 'finished')
+    .sort((a, b) => a.startedAt - b.startedAt);
+}
+
+export function getWorkout(id) {
+  return cache.workouts.get(id) ?? null;
+}
+
+export function getActiveWorkout() {
+  return getWorkouts().find((w) => w.status === 'active') ?? null;
+}
+
+export async function startWorkout({ templateId = null } = {}) {
+  if (getActiveWorkout()) throw new Error('Es läuft bereits ein Training.');
+  const template = templateId ? getTemplate(templateId) : null;
+  const items = template
+    ? template.items.filter((item) => getExercise(item.exerciseId)).map((item) => createItem(item.exerciseId, item.plannedSets))
+    : [];
+  const workout = createWorkout({ name: template?.name ?? 'Training', templateId: template?.id ?? null, items });
+  await commit([put('workouts', workout)]);
+  return workout;
+}
+
+/**
+ * Das aktive Workout wird von der Workout-Ansicht direkt verändert (gleiches Objekt wie im Cache).
+ * saveWorkoutSoon speichert verzögert (Texteingaben), saveWorkout sofort.
+ */
+export function saveWorkoutSoon(workout) {
+  pendingSaves.set(workout.id, workout);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => flushPendingSaves(), SAVE_DELAY_MS);
+}
+
+export async function saveWorkout(workout) {
+  pendingSaves.delete(workout.id);
+  workout.updatedAt = Date.now();
+  await commit([put('workouts', workout)]);
+}
+
+/** Schreibt ausstehende verzögerte Speicherungen sofort (z. B. wenn die App in den Hintergrund geht). */
+export async function flushPendingSaves() {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (!pendingSaves.size) return;
+  const workouts = [...pendingSaves.values()];
+  pendingSaves.clear();
+  const now = Date.now();
+  for (const w of workouts) w.updatedAt = now;
+  try {
+    await commit(workouts.map((w) => put('workouts', w)));
+  } catch (err) {
+    errorHandler(new Error(`Speichern fehlgeschlagen: ${err.message}`));
+  }
+}
+
+/** Beendet das aktive Workout nach den Regeln aus finalizeWorkout. */
+export async function finishWorkout(workout) {
+  pendingSaves.delete(workout.id);
+  const finished = finalizeWorkout(workout, Date.now());
+  await commit([put('workouts', finished)]);
+  return finished;
+}
+
+/** Speichert ein nachträglich bearbeitetes Workout (Entwurf), mit denselben Regeln wie beim Beenden. */
+export async function saveEditedWorkout(draft) {
+  const finished = finalizeWorkout(draft, draft.endedAt);
+  await commit([put('workouts', finished)]);
+  return finished;
+}
+
+export async function deleteWorkout(id) {
+  pendingSaves.delete(id);
+  await commit([del('workouts', id)]);
+}
+
+// ---------- Pausentimer (gerätelokal) ----------
+
+export function getRestTimerEnd() {
+  return getKv('restTimer')?.endAt ?? null;
+}
+
+export function setRestTimerEnd(endAt) {
+  return commit([kvOp('restTimer', { endAt })], { userData: false });
 }
