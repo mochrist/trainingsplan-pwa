@@ -1,5 +1,5 @@
 // Bei jeder Änderung an App-Dateien erhöhen, sonst bekommt das iPhone die neue Version nicht.
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 const CACHE_NAME = `trainingsplan-${APP_VERSION}`;
 
 // Alle Pfade relativ zu sw.js. test/precache.test.js prüft, dass die Liste vollständig ist.
@@ -8,7 +8,21 @@ const PRECACHE = [
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
+  './icons/apple-touch-icon-180.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
   './js/app.js',
+  './js/components/exercise-picker.js',
+  './js/components/sheet.js',
+  './js/components/toast.js',
+  './js/db.js',
+  './js/lib/history.js',
+  './js/lib/html.js',
+  './js/lib/migrate.js',
+  './js/lib/normalize.js',
+  './js/lib/workout.js',
+  './js/store.js',
   './js/views/calendar.js',
   './js/views/plans.js',
   './js/views/progress.js',
@@ -16,10 +30,6 @@ const PRECACHE = [
   './js/views/settings.js',
   './js/views/today.js',
   './js/views/workout.js',
-  './icons/apple-touch-icon-180.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
 ];
 
 self.addEventListener('install', (event) => {

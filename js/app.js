@@ -1,3 +1,6 @@
+import * as store from './store.js';
+import { toastError } from './components/toast.js';
+import { esc } from './lib/html.js';
 import * as today from './views/today.js';
 import * as calendar from './views/calendar.js';
 import * as plans from './views/plans.js';
@@ -19,7 +22,7 @@ const routes = {
 
 const DEFAULT_ROUTE = 'today';
 
-const viewRoot = document.getElementById('view');
+let viewRoot = document.getElementById('view');
 const tabLinks = document.querySelectorAll('.tabbar a[data-tab]');
 
 export function parseHash(hash) {
@@ -30,6 +33,8 @@ export function parseHash(hash) {
 export function navigate(path) {
   location.hash = `#/${path}`;
 }
+
+let currentView = null;
 
 function renderRoute() {
   const { name, params } = parseHash(location.hash);
@@ -45,9 +50,30 @@ function renderRoute() {
     else link.removeAttribute('aria-current');
   }
 
-  viewRoot.replaceChildren();
-  route.view.render(viewRoot, params);
+  currentView?.destroy?.();
+  currentView = route.view;
+  // Neues Element statt replaceChildren, damit Event-Listener der alten View verschwinden
+  const fresh = viewRoot.cloneNode(false);
+  viewRoot.replaceWith(fresh);
+  viewRoot = fresh;
+  try {
+    route.view.render(viewRoot, params);
+  } catch (err) {
+    toastError(err);
+  }
   window.scrollTo(0, 0);
+}
+
+function showFatalError(err) {
+  console.error(err);
+  document.body.classList.add('fullscreen');
+  viewRoot.innerHTML = `
+    <h1>Daten nicht verfügbar</h1>
+    <p>Die lokale Datenbank konnte nicht geöffnet werden. Im privaten Modus von Safari oder bei vollem Speicher
+       kann die App nicht arbeiten.</p>
+    <p class="muted small">${esc(err?.message || err)}</p>
+    <button type="button" class="btn btn-primary" onclick="location.reload()">Erneut versuchen</button>
+  `;
 }
 
 // ---------- Service Worker und Update-Hinweis ----------
@@ -104,7 +130,27 @@ async function requestPersistentStorage() {
   }
 }
 
-window.addEventListener('hashchange', renderRoute);
-renderRoute();
-registerServiceWorker().catch((err) => console.error('Service Worker:', err));
-requestPersistentStorage();
+async function start() {
+  registerServiceWorker().catch((err) => console.error('Service Worker:', err));
+  requestPersistentStorage();
+
+  try {
+    await store.init({
+      onVersionChange: () => {
+        updateBanner.hidden = false;
+        updateBanner.querySelector('span').textContent = 'Neue Version aktiv – bitte neu laden';
+        updateBanner.querySelector('[data-action="reload"]').onclick = () => location.reload();
+      },
+      onBlocked: () => toastError(new Error('Bitte andere geöffnete Fenster der App schließen.')),
+    });
+  } catch (err) {
+    showFatalError(err);
+    return;
+  }
+  store.setErrorHandler(toastError);
+
+  window.addEventListener('hashchange', renderRoute);
+  renderRoute();
+}
+
+start();
