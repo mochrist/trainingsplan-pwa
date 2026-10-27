@@ -51,7 +51,7 @@ export function render(root) {
   });
 
   container.innerHTML = `
-    <h1>Heute</h1>
+    <h1>Training</h1>
     <p class="muted subtitle">${formatDateLong(Date.now())}</p>
 
     ${

@@ -16,7 +16,7 @@ export function render(root) {
   const workout = store.getActiveWorkout();
   if (!workout) {
     root.innerHTML = `
-      <a href="#/today" class="btn">‹ Heute</a>
+      <a href="#/today" class="btn">‹ Training</a>
       <p class="empty-state">Kein aktives Training.</p>
     `;
     return;
@@ -24,7 +24,7 @@ export function render(root) {
 
   root.innerHTML = `
     <header class="workout-header">
-      <a href="#/today" class="icon-btn" aria-label="Zurück zu Heute">${icons.back}</a>
+      <a href="#/today" class="icon-btn" aria-label="Zurück zur Startseite">${icons.back}</a>
       <button type="button" class="workout-title" data-action="rename">${esc(workout.name)}</button>
       <span class="workout-clock" data-clock aria-label="Trainingsdauer">${formatDuration(Date.now() - workout.startedAt)}</span>
       <button type="button" class="btn btn-primary" data-action="finish">Beenden</button>

@@ -55,7 +55,7 @@ Private Trainingsplan- und Workout-Tracker-App fürs iPhone als Progressive Web 
 
 Untere Tab-Leiste mit fünf Tabs:
 
-1. **Heute:** Training starten, laufendes Training fortsetzen, Körpergewicht eintragen, Backup-Hinweis
+1. **Training:** Training starten, laufendes Training fortsetzen, Körpergewicht eintragen, Backup-Hinweis
 2. **Kalender:** Monatsansicht aller Sessions
 3. **Pläne:** Templates und Übungsbibliothek
 4. **Fortschritt:** Diagramm-Baukasten
@@ -120,12 +120,12 @@ Regeln:
 - Ein gestartetes Template-Training erzeugt ein Workout mit den Übungen und der geplanten Anzahl leerer Sätze. Das Training lässt sich spontan ändern (Übung hinzufügen oder entfernen, Sätze hinzufügen oder entfernen). Das verändert **nicht** das Template.
 
 ### 6.3 Workout-Ablauf
-- Start auf „Heute": ein Button je Template plus „Freitext-Training".
+- Start im Tab „Training": ein Button je Template plus „Freitext-Training".
 - **Freitext-Training:** startet leer mit dem Namen „Training". Der Name lässt sich im Workout-Kopf ändern. „Übung hinzufügen" öffnet den `exercise-picker` (siehe 6.1). Gewählte Übungen zeigen wie üblich die letzten Werte.
 - Ein Satz hat: Satznummer oder Warm-up-Marker, Gewicht (±-Buttons in `weightStep` plus Direkteingabe), Wiederholungen, optional RPE, Haken „erledigt", Notiz-Icon, PR-Icon.
 - Der Haken ist nur aktiv, wenn Gewicht und Wiederholungen ausgefüllt sind (Gewicht 0 zählt als ausgefüllt). Beim Abhaken startet der Pausentimer.
 - „Satz hinzufügen" je Übung. Sätze sind per Swipe oder Menü löschbar.
-- Das aktive Workout wird laufend in IndexedDB gespeichert (Debounce und Sofort-Speichern siehe 2.1). Nach App-Neustart oder Absturz zeigt „Heute" ein Banner „Training fortsetzen".
+- Das aktive Workout wird laufend in IndexedDB gespeichert (Debounce und Sofort-Speichern siehe 2.1). Nach App-Neustart oder Absturz zeigt der Tab „Training" ein Banner „Training fortsetzen".
 - **Beenden:** setzt `endedAt` und `status: 'finished'`. Nicht abgehakte, aber ausgefüllte Sätze werden als erledigt übernommen (`doneAt = endedAt`). Leere Sätze werden verworfen, ebenso Übungen ohne Sätze. Hat ein Training keinen erledigten Satz, fragt die App, ob es verworfen werden soll. Danach folgt eine kurze Zusammenfassung (Dauer, Anzahl Sätze, Volumen, PRs).
 
 ### 6.4 Letzte Werte
@@ -182,7 +182,7 @@ Regeln:
 - Nach dem Speichern werden PRs und „Letzte Werte" automatisch neu berechnet, weil sie nie gespeichert, sondern abgeleitet werden.
 
 ### 6.13 Körpergewicht
-- Eintrag auf „Heute" (kleine Karte): Gewicht in kg, ein Eintrag pro Tag (erneutes Eintragen am selben Tag überschreibt, ein einfaches `put` mit `date` als Schlüssel).
+- Eintrag im Tab „Training" (kleine Karte): Gewicht in kg, ein Eintrag pro Tag (erneutes Eintragen am selben Tag überschreibt, ein einfaches `put` mit `date` als Schlüssel).
 - Messart pro Eintrag über drei Buttons: **Nüchtern**, **Normal** (Standard, vorausgewählt), **Nach dem Essen**. Hintergrund: Mageninhalt, Flüssigkeit und Glykogen verschieben das Gewicht über den Tag um 0,5–2 kg. Vergleichbar sind nur Werte derselben Messart, am aussagekräftigsten ist morgens nüchtern.
 - Einträge ohne Messart (Daten vor Version 2) gelten als „Normal“.
 - Verlauf lässt sich in einem Sheet ansehen, bearbeiten und löschen.
@@ -211,7 +211,7 @@ Regeln:
   `{ app: 'trainingsplan', schemaVersion: DATA_VERSION, exportedAt, data: { exercises, templates, workouts, bodyweights, charts, settings } }`.
 - Primär über die Web Share API mit Datei (damit der iOS-Dialog „In Dateien sichern" erscheint), Fallback ist ein Download-Link. Nach erfolgreichem Export wird `kv.backup.lastExportAt` auf den Zeitpunkt gesetzt, zu dem die Daten gelesen wurden (nicht den Zeitpunkt nach dem Teilen). So bleiben Änderungen, die während des Exports passieren, als ungesichert markiert.
 - **Import:** Datei wählen, validieren (App-Kennung, Schema-Version, Struktur), mit `migrate()` auf `DATA_VERSION` bringen, Zusammenfassung zeigen (Anzahl Übungen, Trainings, …), nach Bestätigung alles in **einer Transaktion** ersetzen (Validierung und Migration passieren vorher, siehe 2.1). Bei Fehlern bleibt der alte Datenbestand unverändert. Ein aktives Workout auf dem Gerät wird dabei ebenfalls ersetzt, darauf weist die Bestätigung hin.
-- **Erinnerung:** Auf „Heute" erscheint ein Banner „Zeit für ein Backup" mit den Buttons „Jetzt exportieren" und „Später", wenn
+- **Erinnerung:** Im Tab „Training" erscheint ein Banner „Zeit für ein Backup" mit den Buttons „Jetzt exportieren" und „Später", wenn
   - es ungesicherte Änderungen gibt (`lastChangeAt > lastExportAt`) **und**
   - der letzte Export länger als `backupReminderDays` zurückliegt oder es noch nie einen Export gab (und mindestens ein abgeschlossenes Training existiert) **und**
   - `snoozedUntil` nicht in der Zukunft liegt.
@@ -291,7 +291,7 @@ Nach jeder Phase: committen, die Abnahmekriterien prüfen und erst dann weiterma
 - **Abnahme:** Templates überleben einen Neustart, Reihenfolge und Satzanzahl stimmen.
 
 ### Phase 3 – Workout-Kern
-- „Heute" mit Template-Buttons und Freitext-Training, Workout-Ansicht mit Satzzeilen, Gewicht-Stepper, Wiederholungen, Haken, Satz hinzufügen und löschen, Übung hinzufügen oder entfernen.
+- Tab „Training" mit Template-Buttons und Freitext-Training, Workout-Ansicht mit Satzzeilen, Gewicht-Stepper, Wiederholungen, Haken, Satz hinzufügen und löschen, Übung hinzufügen oder entfernen.
 - Laufende Persistenz, Banner „Training fortsetzen", Beenden mit Zusammenfassung, Gesamtdauer-Counter.
 - „Letzte Werte" (`history.js` mit Tests), Aufwärmsätze, optionales RPE, dauerhafte Übungsnotiz und Satznotiz.
 - **Abnahme:** Ein komplettes Training lässt sich ohne Internet durchführen, beenden und in der Datenbank wiederfinden. Nach hartem Schließen der App während des Trainings wird es fortgesetzt. Die Dauer stimmt nach App-Wechsel. Aufwärmsätze tauchen in „Letzte Werte" nicht auf.
