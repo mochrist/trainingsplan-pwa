@@ -187,6 +187,13 @@ body.fullscreen .tabbar {
   display: none;
 }
 
+/* Im Vollbild-Workout zählt jede Spalte: schmalere Ränder */
+body.fullscreen .view {
+  padding-left: calc(var(--safe-left) + 12px);
+  padding-right: calc(var(--safe-right) + 12px);
+  padding-bottom: calc(var(--safe-bottom) + 24px);
+}
+
 /* ---------- Update-Hinweis ---------- */
 
 .update-banner {
@@ -315,9 +322,11 @@ select {
   padding-right: 32px;
 }
 
+/* Platzhalter tragen die letzten Werte: ausreichender Kontrast (≥ 4,5:1) */
 input::placeholder,
 textarea::placeholder {
-  color: #5d6470;
+  color: #7d8491;
+  opacity: 1;
 }
 
 .field {
@@ -649,7 +658,7 @@ a.list-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: calc(-1 * (var(--safe-top) + 16px)) -16px 12px;
+  margin: calc(-1 * (var(--safe-top) + 16px)) -12px 12px;
   padding: calc(var(--safe-top) + 6px) 12px 6px 4px;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   border-bottom: 1px solid var(--border);
@@ -695,7 +704,7 @@ a.list-item {
 
 .ex-block {
   margin-bottom: 14px;
-  padding: 10px 10px 12px;
+  padding: 10px 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -727,13 +736,13 @@ a.list-item {
   font-size: 14px;
 }
 
-/* Spalten: Satz | Gewicht | Wdh | (RPE) | Menü | (Haken) */
+/* Spalten: Satz | Gewicht | Wdh | (RPE) | Menü | (Haken). Ausgelegt auf 375 px Breite inkl. RPE. */
 .workout-editor {
-  --col-num: 34px;
-  --col-reps: 52px;
-  --col-rpe: 52px;
-  --col-menu: 32px;
-  --col-check: 44px;
+  --col-num: 30px;
+  --col-reps: 46px;
+  --col-rpe: 46px;
+  --col-menu: 28px;
+  --col-check: 42px;
 }
 
 .set-head,
@@ -825,7 +834,7 @@ a.list-item {
 
 .weight-group {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
   align-items: center;
   gap: 2px;
 }
@@ -1433,4 +1442,8 @@ body.has-rest-timer .view {
 
 .settings-group .stack {
   margin-bottom: 8px;
+}
+
+.sheet:focus {
+  outline: none;
 }

@@ -225,31 +225,41 @@ Regeln:
 │   └── styles.css
 ├── icons/                      # 192, 512, maskable 512, apple-touch-icon 180
 ├── js/
-│   ├── app.js                  # Bootstrap, Hash-Router, Tab-Leiste
+│   ├── app.js                  # Bootstrap, Hash-Router, Tab-Leiste, Service-Worker-Updates
+│   ├── nav.js                  # navigate() ohne zyklische Importe
 │   ├── db.js                   # IndexedDB-Wrapper, Stores und Indizes
 │   ├── store.js                # In-Memory-Cache, Schreibfunktionen, subscribe()
 │   ├── lib/                    # reine Logik ohne DOM (testbar)
 │   │   ├── normalize.js        # nameNorm, Suche und Ranking
+│   │   ├── workout.js          # Satz-/Workout-Regeln, Beenden, Epley-1RM
+│   │   ├── numbers.js          # Zahlen parsen, runden, im deutschen Format ausgeben
+│   │   ├── html.js             # esc(), newId()
 │   │   ├── pr.js               # PR-Berechnung
-│   │   ├── stats.js            # Metriken für Diagramme
-│   │   ├── history.js          # "Letzte Werte"
+│   │   ├── stats.js            # Metriken für Diagramme und Zusammenfassung
+│   │   ├── history.js          # "Letzte Werte", Nutzungsstatistik
 │   │   ├── time.js             # Formatierung, Kalenderlogik
 │   │   ├── migrate.js          # DATA_VERSION, migrate(data, fromVersion)
-│   │   └── backup.js           # Export, Import, Validierung, Erinnerungslogik
+│   │   └── backup.js           # Exportformat, Validierung, Erinnerungslogik
 │   ├── components/
 │   │   ├── exercise-picker.js
-│   │   ├── set-row.js
+│   │   ├── workout-editor.js   # Übungen und Satzzeilen (Live-Workout und Bearbeiten)
 │   │   ├── rest-timer.js
 │   │   ├── chart.js
-│   │   └── sheet.js            # Bottom-Sheet
+│   │   ├── backup-actions.js   # Export (Share/Download), Import mit Bestätigung
+│   │   ├── sheet.js            # Bottom-Sheet und Dialoge
+│   │   ├── toast.js
+│   │   └── icons.js
 │   └── views/
 │       ├── today.js
 │       ├── workout.js
 │       ├── calendar.js
-│       ├── session-detail.js
-│       ├── plans.js
+│       ├── session-detail.js   # inkl. Zusammenfassung und Bearbeitungsmodus
+│       ├── plans.js            # Templates, Template-Editor, Übungsbibliothek
 │       ├── progress.js
 │       └── settings.js
+├── tools/
+│   ├── make-icons.mjs          # Icons erzeugen
+│   └── update-precache.mjs     # PRECACHE-Liste in sw.js aktualisieren
 ├── test/                       # node --test: js/lib und Precache-Vollständigkeit
 └── README.md
 ```

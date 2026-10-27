@@ -146,6 +146,10 @@ async function start() {
   }
   store.setErrorHandler(toastError);
 
+  // Nicht abgefangene Fehler sichtbar machen statt still zu scheitern
+  window.addEventListener('unhandledrejection', (event) => toastError(event.reason));
+  window.addEventListener('error', (event) => toastError(event.error ?? new Error(event.message)));
+
   // iOS beendet PWAs im Hintergrund ohne Vorwarnung: ausstehende Eingaben sofort speichern
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') store.flushPendingSaves();

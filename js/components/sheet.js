@@ -38,7 +38,11 @@ export function openSheet({ title, render, onClose }) {
   });
   document.addEventListener('keydown', onKey);
   document.body.append(backdrop);
+  const sheet = backdrop.querySelector('.sheet');
+  sheet.tabIndex = -1;
   render(backdrop.querySelector('.sheet-body'), close);
+  // Fokus in den Dialog holen, falls der Inhalt kein Eingabefeld fokussiert hat
+  if (!sheet.contains(document.activeElement)) sheet.focus({ preventScroll: true });
   return close;
 }
 
