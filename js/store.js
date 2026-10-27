@@ -173,3 +173,49 @@ export async function deleteExercise(id) {
   if (isExerciseUsed(id)) throw new Error('Die Übung wird verwendet und kann nur archiviert werden.');
   await commit([del('exercises', id)]);
 }
+
+// ---------- Templates ----------
+
+export const DEFAULT_PLANNED_SETS = 3;
+
+export function getTemplates() {
+  return [...cache.templates.values()].sort((a, b) => a.name.localeCompare(b.name, 'de') || a.createdAt - b.createdAt);
+}
+
+export function getTemplate(id) {
+  return cache.templates.get(id) ?? null;
+}
+
+export async function createTemplate(name) {
+  const clean = cleanName(name);
+  if (!clean) throw new Error('Bitte einen Namen eingeben.');
+  const now = Date.now();
+  const template = { id: newId(), name: clean, items: [], createdAt: now, updatedAt: now };
+  await commit([put('templates', template)]);
+  return template;
+}
+
+/** Speichert ein geändertes Template (als Kopie, der Cache wird erst nach dem Schreiben ersetzt). */
+export async function saveTemplate(template) {
+  const clean = cleanName(template.name);
+  if (!clean) throw new Error('Bitte einen Namen eingeben.');
+  await commit([put('templates', { ...structuredClone(template), name: clean, updatedAt: Date.now() })]);
+}
+
+export async function duplicateTemplate(id) {
+  const source = getTemplate(id);
+  const now = Date.now();
+  const copy = {
+    id: newId(),
+    name: `${source.name} (Kopie)`,
+    items: source.items.map((item) => ({ ...item, id: newId() })),
+    createdAt: now,
+    updatedAt: now,
+  };
+  await commit([put('templates', copy)]);
+  return copy;
+}
+
+export function deleteTemplate(id) {
+  return commit([del('templates', id)]);
+}

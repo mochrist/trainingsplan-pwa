@@ -515,3 +515,65 @@ textarea::placeholder {
 .toast-error {
   border-color: var(--danger);
 }
+
+/* ---------- Pläne ---------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+a.btn,
+a.list-item {
+  color: inherit;
+  text-decoration: none;
+}
+
+.template-items {
+  margin-bottom: 12px;
+}
+
+.template-item {
+  padding: 10px 6px 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.template-item-name {
+  font-weight: 500;
+}
+
+.template-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.template-item-controls .stepper {
+  flex: 1;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper-value {
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.actions-bottom {
+  margin-top: 32px;
+}

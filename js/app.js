@@ -1,6 +1,7 @@
 import * as store from './store.js';
 import { toastError } from './components/toast.js';
 import { esc } from './lib/html.js';
+import { navigate } from './nav.js';
 import * as today from './views/today.js';
 import * as calendar from './views/calendar.js';
 import * as plans from './views/plans.js';
@@ -28,10 +29,6 @@ const tabLinks = document.querySelectorAll('.tabbar a[data-tab]');
 export function parseHash(hash) {
   const [name, ...params] = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   return { name: name || DEFAULT_ROUTE, params: params.map(decodeURIComponent) };
-}
-
-export function navigate(path) {
-  location.hash = `#/${path}`;
 }
 
 let currentView = null;
