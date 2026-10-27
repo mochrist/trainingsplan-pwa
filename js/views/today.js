@@ -5,6 +5,8 @@ import { dayKey, formatDateLong, formatTime, parseDayKey } from '../lib/time.js'
 import { openSheet, confirmDialog, promptDialog } from '../components/sheet.js';
 import { toast, toastError } from '../components/toast.js';
 import { navigate } from '../nav.js';
+import { shouldRemind, SNOOZE_MS } from '../lib/backup.js';
+import { exportBackup } from '../components/backup-actions.js';
 
 export function render(root) {
   // Frischer Container bei jedem Rendern, damit Listener nicht doppelt hängen
@@ -16,6 +18,12 @@ export function render(root) {
   const todayKey = dayKey(Date.now());
   const todayWeight = store.getBodyweight(todayKey);
   const lastWeight = store.getBodyweights().at(-1);
+  const backup = store.getBackupMeta();
+  const remindBackup = shouldRemind({
+    backup,
+    reminderDays: store.getSettings().backupReminderDays,
+    hasFinishedWorkout: store.getFinishedWorkouts().length > 0,
+  });
 
   container.innerHTML = `
     <h1>Heute</h1>
@@ -33,7 +41,19 @@ export function render(root) {
         : ''
     }
 
-    <div data-backup-banner></div>
+    ${
+      remindBackup
+        ? `<section class="card banner-backup">
+            <div class="banner-title">Zeit für ein Backup</div>
+            <p class="muted small">${backup.lastExportAt ? `Letzter Export am ${formatDateLong(backup.lastExportAt)}.` : 'Es gibt noch kein Backup.'}
+              Die Daten liegen nur auf diesem iPhone.</p>
+            <div class="sheet-actions">
+              <button type="button" class="btn" data-action="backup-later">Später</button>
+              <button type="button" class="btn btn-primary" data-action="backup-now">Jetzt exportieren</button>
+            </div>
+          </section>`
+        : ''
+    }
 
     <section>
       <h2>Training starten</h2>
@@ -87,8 +107,18 @@ export function render(root) {
   });
 
   container.addEventListener('click', async (event) => {
-    if (event.target.closest('[data-action="bw-history"]')) {
+    const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'bw-history') {
       openBodyweightHistory(() => render(root));
+      return;
+    }
+    if (action === 'backup-now') {
+      if (await exportBackup()) render(root);
+      return;
+    }
+    if (action === 'backup-later') {
+      await store.snoozeBackupReminder(Date.now() + SNOOZE_MS).catch(toastError);
+      render(root);
       return;
     }
     const button = event.target.closest('[data-start]');

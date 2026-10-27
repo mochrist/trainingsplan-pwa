@@ -51,6 +51,11 @@ export function openDatabase({ onVersionChange, onBlocked } = {}) {
   });
 }
 
+/** tx.error ist beim ersten error-Event oft noch null: Fehler des auslösenden Requests bevorzugen. */
+function requestError(event, tx, fallback) {
+  return event?.target?.error ?? tx.error ?? new Error(fallback);
+}
+
 /** Liest alle Stores in einer Transaktion: { exercises: [...], ... } */
 export function readAll(db) {
   return new Promise((resolve, reject) => {
@@ -63,8 +68,8 @@ export function readAll(db) {
       };
     }
     tx.oncomplete = () => resolve(result);
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error ?? new Error('Lesen abgebrochen'));
+    tx.onerror = (event) => reject(requestError(event, tx, 'Lesen fehlgeschlagen'));
+    tx.onabort = (event) => reject(requestError(event, tx, 'Lesen abgebrochen'));
   });
 }
 
@@ -85,14 +90,21 @@ export function write(db, ops) {
     }
     const storeNames = [...new Set(ops.map((op) => op.store))];
     const tx = db.transaction(storeNames, 'readwrite');
-    for (const op of ops) {
-      const store = tx.objectStore(op.store);
-      if (op.type === 'put') store.put(op.value);
-      else if (op.type === 'delete') store.delete(op.key);
-      else store.clear();
+    try {
+      for (const op of ops) {
+        const store = tx.objectStore(op.store);
+        if (op.type === 'put') store.put(op.value);
+        else if (op.type === 'delete') store.delete(op.key);
+        else store.clear();
+      }
+    } catch (err) {
+      // Synchroner Fehler (z. B. fehlender Schlüssel): nichts von dieser Transaktion übernehmen
+      tx.abort();
+      reject(err);
+      return;
     }
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error ?? new Error('Speichern abgebrochen'));
+    tx.onerror = (event) => reject(requestError(event, tx, 'Speichern fehlgeschlagen'));
+    tx.onabort = (event) => reject(requestError(event, tx, 'Speichern abgebrochen'));
   });
 }

@@ -381,6 +381,43 @@ export function deleteChart(id) {
   return commit([del('charts', id)]);
 }
 
+// ---------- Backup ----------
+
+const EXPORT_STORES = ['exercises', 'templates', 'workouts', 'bodyweights', 'charts'];
+
+/** Alle Nutzerdaten für den Export (ohne gerätelokale kv-Einträge). */
+export function exportData() {
+  const data = Object.fromEntries(EXPORT_STORES.map((name) => [name, structuredClone([...cache[name].values()])]));
+  data.settings = getSettings();
+  return data;
+}
+
+/** @param at Zeitpunkt, zu dem die Daten gelesen wurden */
+export function markExported(at) {
+  return commit([kvOp('backup', { ...getBackupMeta(), lastExportAt: at, snoozedUntil: null })], { userData: false });
+}
+
+export function snoozeBackupReminder(until) {
+  return commit([kvOp('backup', { ...getBackupMeta(), snoozedUntil: until })], { userData: false });
+}
+
+/** Ersetzt alle Nutzerdaten atomar in einer Transaktion. data ist bereits validiert und migriert. */
+export async function importData(data) {
+  clearTimeout(saveTimer);
+  pendingSaves.clear();
+  const now = Date.now();
+  const ops = [
+    ...EXPORT_STORES.map((store) => ({ store, type: 'clear' })),
+    ...EXPORT_STORES.flatMap((store) => data[store].map((record) => put(store, record))),
+    kvOp('settings', { ...DEFAULT_SETTINGS, ...data.settings }),
+    // Der Datenbestand entspricht jetzt einem Backup
+    kvOp('backup', { lastExportAt: now, lastChangeAt: now, snoozedUntil: null }),
+    kvOp('restTimer', { endAt: null }),
+    kvOp('seeded', true),
+  ];
+  await commit(ops, { userData: false });
+}
+
 // ---------- Pausentimer (gerätelokal) ----------
 
 export function getRestTimerEnd() {

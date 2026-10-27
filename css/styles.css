@@ -1407,3 +1407,30 @@ body.has-rest-timer .view {
 .builder-title {
   margin-top: 16px;
 }
+
+/* ---------- Backup ---------- */
+
+.banner-backup {
+  border-color: var(--warning);
+}
+
+.banner-backup p {
+  margin: 4px 0 0;
+}
+
+.banner-backup .sheet-actions {
+  margin-top: 12px;
+}
+
+.import-summary {
+  margin: 8px 0 16px;
+  padding-left: 20px;
+}
+
+.warning-text {
+  color: var(--warning);
+}
+
+.settings-group .stack {
+  margin-bottom: 8px;
+}
