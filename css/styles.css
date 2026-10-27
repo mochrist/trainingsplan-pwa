@@ -1109,3 +1109,114 @@ body.has-rest-timer .view {
   text-align: center;
   margin-top: 24px;
 }
+
+/* ---------- Kalender ---------- */
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cal-title {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+}
+
+.cal-header .icon-btn {
+  font-size: 26px;
+  color: var(--text);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cal-weekday {
+  padding: 4px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  aspect-ratio: 1;
+  min-height: var(--tap);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.cal-day.is-outside {
+  background: transparent;
+  color: #4f5560;
+}
+
+.cal-day.is-today .cal-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.cal-day.is-selected {
+  border-color: var(--accent);
+}
+
+.cal-dots {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+}
+
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--success);
+}
+
+.cal-count {
+  margin: 12px 0;
+  text-align: center;
+}
+
+.day-list h2 {
+  margin-top: 8px;
+}
+
+/* ---------- Bearbeiten ---------- */
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+}
+
+.field-row .field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.edit-fields {
+  margin-bottom: 16px;
+}
