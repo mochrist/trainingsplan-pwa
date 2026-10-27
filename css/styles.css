@@ -1220,3 +1220,190 @@ body.has-rest-timer .view {
 .edit-fields {
   margin-bottom: 16px;
 }
+
+/* ---------- Körpergewicht ---------- */
+
+.bw-card {
+  margin-top: 24px;
+}
+
+.bw-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.btn-link {
+  min-height: var(--tap);
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.bw-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 4px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bw-date {
+  flex: 1;
+}
+
+.bw-kg {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Fortschritt ---------- */
+
+.page-header {
+  margin-top: 0;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.chart-header p {
+  margin: 2px 0 0;
+}
+
+.chart-body {
+  margin-top: 8px;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: manipulation;
+}
+
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-point {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.chart-point.is-active {
+  fill: var(--warning);
+  r: 5;
+}
+
+.chart-bar {
+  fill: var(--accent);
+}
+
+.chart-bar.is-active {
+  fill: var(--warning);
+}
+
+.chart-cursor {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chart-info {
+  min-height: 20px;
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.chart-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.chart-empty {
+  margin: 0;
+  padding: 40px 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.builder h3 {
+  margin: 16px 0 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.builder h3:first-child {
+  margin-top: 4px;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.segmented button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.segmented button[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.builder-exercise {
+  margin-top: 8px;
+}
+
+.builder-title {
+  margin-top: 16px;
+}

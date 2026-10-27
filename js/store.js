@@ -6,6 +6,7 @@ import { usageStats } from './lib/history.js';
 import { computePRs } from './lib/pr.js';
 import { newId } from './lib/html.js';
 import { createItem, createWorkout, finalizeWorkout } from './lib/workout.js';
+import { roundWeight } from './lib/numbers.js';
 
 const STARTER_EXERCISES = [
   'Bankdrücken (Langhantel)',
@@ -20,6 +21,12 @@ const STARTER_EXERCISES = [
   'Face Pulls',
   'Bizeps-Curls (SZ-Stange)',
   'Reverse Butterfly',
+];
+
+// Standard-Diagramme beim ersten Start (unabhängig von Übungen)
+const DEFAULT_CHARTS = [
+  { title: 'Körpergewicht', source: { kind: 'bodyweight' }, metric: 'kg', range: '3m', chartType: 'line' },
+  { title: 'Trainingsdauer', source: { kind: 'duration' }, metric: 'minutes', range: '3m', chartType: 'bar' },
 ];
 
 export const DEFAULT_SETTINGS = {
@@ -89,6 +96,7 @@ async function seed() {
   const ops = STARTER_EXERCISES.map((name, i) =>
     put('exercises', { id: newId(), name, nameNorm: normalizeName(name), note: '', archived: false, createdAt: now + i }),
   );
+  DEFAULT_CHARTS.forEach((chart, order) => ops.push(put('charts', { id: newId(), ...chart, order })));
   if (!getKv('settings')) ops.push(kvOp('settings', { ...DEFAULT_SETTINGS }));
   ops.push(kvOp('seeded', true));
   await commit(ops, { userData: false });
@@ -317,6 +325,60 @@ export function getPrSetIds(replacement = null) {
 export async function deleteWorkout(id) {
   pendingSaves.delete(id);
   await commit([del('workouts', id)]);
+}
+
+// ---------- Körpergewicht ----------
+
+/** Einträge chronologisch aufsteigend. */
+export function getBodyweights() {
+  return [...cache.bodyweights.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function getBodyweight(date) {
+  return cache.bodyweights.get(date) ?? null;
+}
+
+/** Ein Eintrag pro Tag: erneutes Eintragen überschreibt. */
+export async function setBodyweight(date, kg) {
+  if (!(kg > 0)) throw new Error('Bitte ein gültiges Gewicht eingeben.');
+  return commit([put('bodyweights', { date, kg: roundWeight(kg) })]);
+}
+
+export function deleteBodyweight(date) {
+  return commit([del('bodyweights', date)]);
+}
+
+// ---------- Diagramme ----------
+
+export function getCharts() {
+  return [...cache.charts.values()].sort((a, b) => a.order - b.order);
+}
+
+export function getChart(id) {
+  return cache.charts.get(id) ?? null;
+}
+
+/** Neues Diagramm ans Ende, vorhandenes an seiner Position speichern. */
+export async function saveChart(chart) {
+  const existing = chart.id ? getChart(chart.id) : null;
+  const order = existing ? existing.order : getCharts().reduce((max, c) => Math.max(max, c.order + 1), 0);
+  const record = { ...structuredClone(chart), id: chart.id ?? newId(), order };
+  await commit([put('charts', record)]);
+  return record;
+}
+
+export async function moveChart(id, direction) {
+  const charts = getCharts();
+  const index = charts.findIndex((c) => c.id === id);
+  const to = index + direction;
+  if (index === -1 || to < 0 || to >= charts.length) return;
+  [charts[index], charts[to]] = [charts[to], charts[index]];
+  // Reihenfolge neu durchnummerieren
+  await commit(charts.map((c, order) => put('charts', { ...c, order })));
+}
+
+export function deleteChart(id) {
+  return commit([del('charts', id)]);
 }
 
 // ---------- Pausentimer (gerätelokal) ----------
