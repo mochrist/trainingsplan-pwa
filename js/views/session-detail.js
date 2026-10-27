@@ -18,13 +18,9 @@ export function render(root, [id, mode] = []) {
   renderView(root, workout, mode === 'summary');
 }
 
-function getPrSetIds() {
-  return new Set();
-}
-
 function renderView(root, workout, isSummary) {
   const settings = store.getSettings();
-  const prSetIds = getPrSetIds();
+  const prSetIds = store.getPrSetIds();
   const totals = workoutTotals(workout, prSetIds);
 
   root.innerHTML = `

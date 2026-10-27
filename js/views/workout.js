@@ -45,7 +45,7 @@ export function render(root) {
     mode: 'live',
     onChange: save,
     onSetDone: () => restTimer.start(store.getSettings().restSeconds),
-    getPrSetIds: () => new Set(),
+    getPrSetIds: () => store.getPrSetIds(),
   });
 
   // Audio-Kontext bei Taps entsperren bzw. nach Hintergrund wieder aufwecken (iOS)

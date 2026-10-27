@@ -3,6 +3,7 @@
 import { openDatabase, readAll, write, keyOf, STORES } from './db.js';
 import { cleanName, normalizeName, findByName } from './lib/normalize.js';
 import { usageStats } from './lib/history.js';
+import { computePRs } from './lib/pr.js';
 import { newId } from './lib/html.js';
 import { createItem, createWorkout, finalizeWorkout } from './lib/workout.js';
 
@@ -302,6 +303,15 @@ export async function saveEditedWorkout(draft) {
   const finished = finalizeWorkout(draft, draft.endedAt);
   await commit([put('workouts', finished)]);
   return finished;
+}
+
+/**
+ * Satz-IDs mit PR-Icon über alle Workouts inkl. aktivem.
+ * @param replacement ein Entwurf, der das gespeicherte Workout mit gleicher ID ersetzt (Bearbeiten)
+ */
+export function getPrSetIds(replacement = null) {
+  const workouts = getWorkouts().map((w) => (replacement && w.id === replacement.id ? replacement : w));
+  return computePRs(workouts);
 }
 
 export async function deleteWorkout(id) {
