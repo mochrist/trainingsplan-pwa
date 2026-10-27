@@ -1,0 +1,9 @@
+{
+  "name": "trainingsplan",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "icons": "node tools/make-icons.mjs"
+  }
+}
