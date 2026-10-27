@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__blockbench__screenshot_views",
+      "mcp__blockbench__analyze_animation",
+      "mcp__blockbench__check_model",
+      "mcp__blockbench__get_guide",
+      "mcp__blockbench__audit_complexity",
+      "mcp__blockbench__check_sides"
+    ]
+  }
+}
