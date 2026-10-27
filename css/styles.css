@@ -1447,3 +1447,94 @@ body.has-rest-timer .view {
 .sheet:focus {
   outline: none;
 }
+
+/* ---------- Messart Körpergewicht / Datenreihen ---------- */
+
+.series {
+  --series-color: var(--accent);
+}
+
+.series-fasted {
+  --series-color: var(--success);
+}
+
+.series-neutral,
+.series-main {
+  --series-color: var(--accent);
+}
+
+.series-fed {
+  --series-color: var(--warning);
+}
+
+.series .chart-line {
+  stroke: var(--series-color);
+}
+
+.series .chart-point,
+.series .chart-bar {
+  fill: var(--series-color);
+}
+
+.series .chart-point.is-active,
+.series .chart-bar.is-active {
+  fill: var(--series-color);
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.series-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--series-color);
+  vertical-align: baseline;
+}
+
+.state-choice,
+.state-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.state-toggles {
+  margin: 10px 0 0;
+}
+
+.state-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.state-chip[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.state-chip[aria-pressed="true"] {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.state-chip[aria-pressed="false"] .series-dot {
+  opacity: 0.3;
+}
+
+.builder-hint {
+  margin: 12px 0 0;
+}

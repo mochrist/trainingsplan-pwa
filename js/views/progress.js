@@ -1,7 +1,10 @@
 // Tab „Fortschritt“: gespeicherte Diagramme und Diagramm-Baukasten.
 import * as store from '../store.js';
 import { esc } from '../lib/html.js';
-import { SOURCES, METRICS, RANGES, CHART_TYPES, chartSeries, metricsFor, defaultTitle, hasRpeData } from '../lib/stats.js';
+import {
+  SOURCES, METRICS, RANGES, CHART_TYPES, BODYWEIGHT_STATES,
+  chartSeriesSets, metricsFor, defaultTitle, hasRpeData, selectedBodyweightSeries,
+} from '../lib/stats.js';
 import { renderChart } from '../components/chart.js';
 import { openSheet, confirmDialog } from '../components/sheet.js';
 import { pickExercise } from '../components/exercise-picker.js';
@@ -32,6 +35,7 @@ export function render(root) {
               </div>
               <button type="button" class="icon-btn" data-action="chart-menu" aria-label="Diagramm-Optionen">${icons.more}</button>
             </header>
+            ${chart.source.kind === 'bodyweight' ? renderStateToggles(chart) : ''}
             <div class="chart-body"></div>
           </section>`,
       )
@@ -40,17 +44,48 @@ export function render(root) {
 
   for (const chart of charts) {
     const body = container.querySelector(`[data-chart="${CSS.escape(chart.id)}"] .chart-body`);
-    renderChart(body, chartSeries(chart, data), { type: chart.chartType, unit: METRICS[chart.metric]?.unit ?? '' });
+    renderChart(body, chartSeriesSets(chart, data), { type: chart.chartType, unit: METRICS[chart.metric]?.unit ?? '' });
   }
 
   const rerender = () => render(root);
 
-  container.addEventListener('click', (event) => {
+  container.addEventListener('click', async (event) => {
+    const toggle = event.target.closest('[data-state-toggle]');
+    if (toggle) {
+      const chart = store.getChart(toggle.closest('[data-chart]').dataset.chart);
+      const states = toggleState(selectedBodyweightSeries(chart), toggle.dataset.stateToggle);
+      if (!states) return;
+      await store.saveChart({ ...chart, states }).catch(toastError);
+      rerender();
+      return;
+    }
     const button = event.target.closest('[data-action]');
     if (!button) return;
     if (button.dataset.action === 'new-chart') openBuilder(null, rerender);
     if (button.dataset.action === 'chart-menu') openChartMenu(button.closest('[data-chart]').dataset.chart, rerender);
   });
+}
+
+/** Messart an- oder abwählen. Mindestens eine bleibt ausgewählt (sonst null). */
+function toggleState(selected, key) {
+  const next = selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key];
+  return next.length ? Object.keys(BODYWEIGHT_STATES).filter((k) => next.includes(k)) : null;
+}
+
+/** Mehrfachauswahl der Messarten (Farbpunkt = Linienfarbe im Diagramm). */
+function renderStateToggles(chart, attr = 'data-state-toggle') {
+  const selected = selectedBodyweightSeries(chart);
+  return `
+    <div class="state-toggles" role="group" aria-label="Messarten anzeigen">
+      ${Object.entries(BODYWEIGHT_STATES)
+        .map(
+          ([key, label]) => `
+            <button type="button" class="state-chip" ${attr}="${key}" aria-pressed="${selected.includes(key)}">
+              <span class="series-dot series-${key}"></span>${esc(label)}
+            </button>`,
+        )
+        .join('')}
+    </div>`;
 }
 
 function openChartMenu(id, onChange) {
@@ -148,6 +183,11 @@ function openBuilder(existing, onSaved) {
 
             <h3>2. Metrik</h3>
             ${segmented('metric', Object.fromEntries(metrics.map((m) => [m, METRICS[m].label])), draft.metric)}
+            ${
+              draft.source.kind === 'bodyweight'
+                ? `<p class="muted small builder-hint">Messarten (mehrere übereinander möglich):</p>${renderStateToggles(draft, 'data-builder-state')}`
+                : ''
+            }
 
             <h3>3. Zeitraum</h3>
             ${segmented('range', RANGES, draft.range)}
@@ -176,6 +216,13 @@ function openBuilder(existing, onSaved) {
       });
 
       body.addEventListener('click', async (event) => {
+        const stateButton = event.target.closest('[data-builder-state]');
+        if (stateButton) {
+          const states = toggleState(selectedBodyweightSeries(draft), stateButton.dataset.builderState);
+          if (states) draft.states = states;
+          draw();
+          return;
+        }
         const option = event.target.closest('[data-set]');
         if (option) {
           const { set, value } = option.dataset;
@@ -195,6 +242,7 @@ function openBuilder(existing, onSaved) {
         if (event.target.closest('[data-save]') && isValid()) {
           if (!draft.title.trim()) draft.title = suggestedTitle(draft);
           if (draft.source.kind !== 'exercise') delete draft.source.exerciseId;
+          if (draft.source.kind !== 'bodyweight') delete draft.states;
           try {
             await store.saveChart(draft);
             close();

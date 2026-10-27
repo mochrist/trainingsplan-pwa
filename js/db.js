@@ -2,7 +2,7 @@
 //
 // Wichtig (Safari): Innerhalb einer Transaktion nur IDB-Requests abwarten, keine anderen Promises.
 // Sonst committet Safari die Transaktion vorzeitig. write() stellt deshalb alle Requests synchron.
-import { DATA_VERSION } from './lib/migrate.js';
+import { DATA_VERSION, migrateBodyweightV1 } from './lib/migrate.js';
 
 const DB_NAME = 'trainingsplan';
 
@@ -14,7 +14,7 @@ export function keyOf(store, record) {
   return record[KEY_PATHS[store] ?? 'id'];
 }
 
-function upgrade(db, oldVersion) {
+function upgrade(db, oldVersion, tx) {
   if (oldVersion < 1) {
     const exercises = db.createObjectStore('exercises', { keyPath: 'id' });
     exercises.createIndex('nameNorm', 'nameNorm', { unique: true });
@@ -26,7 +26,16 @@ function upgrade(db, oldVersion) {
     db.createObjectStore('charts', { keyPath: 'id' });
     db.createObjectStore('kv', { keyPath: 'key' });
   }
-  // Spätere Versionen: hier nur Stores und Indizes ändern, Datenumbau über lib/migrate.js.
+  if (oldVersion >= 1 && oldVersion < 2) {
+    // Datenumbau mit derselben Funktion wie beim Import alter Backups
+    tx.objectStore('bodyweights').openCursor().onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (!cursor) return;
+      cursor.update(migrateBodyweightV1(cursor.value));
+      cursor.continue();
+    };
+  }
+  // Spätere Versionen: Stores und Indizes hier ändern, Datenumbau über lib/migrate.js.
 }
 
 export function openDatabase({ onVersionChange, onBlocked } = {}) {
@@ -36,7 +45,7 @@ export function openDatabase({ onVersionChange, onBlocked } = {}) {
       return;
     }
     const request = indexedDB.open(DB_NAME, DATA_VERSION);
-    request.onupgradeneeded = (event) => upgrade(request.result, event.oldVersion);
+    request.onupgradeneeded = (event) => upgrade(request.result, event.oldVersion, request.transaction);
     request.onblocked = () => onBlocked?.();
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {

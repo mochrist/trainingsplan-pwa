@@ -1,7 +1,7 @@
 // Backup-Format, Validierung und Erinnerungslogik (ohne DOM).
 import { DATA_VERSION, migrate } from './migrate.js';
 import { dayKey } from './time.js';
-import { SOURCES, METRICS, RANGES, CHART_TYPES } from './stats.js';
+import { SOURCES, METRICS, RANGES, CHART_TYPES, BODYWEIGHT_STATES } from './stats.js';
 
 export const APP_ID = 'trainingsplan';
 export const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
@@ -124,6 +124,7 @@ function validate(data) {
   // Körpergewicht
   for (const b of data.bodyweights) {
     check(isObject(b) && /^\d{4}-\d{2}-\d{2}$/.test(b.date) && isNumber(b.kg) && b.kg > 0, 'ungültiger Körpergewicht-Eintrag');
+    check(b.state in BODYWEIGHT_STATES, 'Körpergewicht-Eintrag mit ungültiger Messart');
   }
   checkUnique(data.bodyweights.map((b) => b.date), 'doppelte Körpergewicht-Tage');
 
@@ -134,6 +135,10 @@ function validate(data) {
     check(c.source.kind !== 'exercise' || knownExercise(c.source.exerciseId), 'Diagramm verweist auf unbekannte Übung');
     check(c.metric in METRICS && METRICS[c.metric].source === c.source.kind, 'Diagramm mit ungültiger Metrik');
     check(c.range in RANGES && c.chartType in CHART_TYPES && isNumber(c.order), 'Diagramm mit ungültigen Einstellungen');
+    check(
+      c.states === undefined || (Array.isArray(c.states) && c.states.length > 0 && c.states.every((k) => k in BODYWEIGHT_STATES)),
+      'Diagramm mit ungültiger Messart-Auswahl',
+    );
   }
   checkUnique(data.charts.map((c) => c.id), 'doppelte Diagramm-IDs');
 

@@ -2,7 +2,7 @@ process.env.TZ = 'Europe/Berlin';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chartSeries, seriesSummary, niceTicks, metricsFor, defaultTitle, hasRpeData, workoutTotals } from '../js/lib/stats.js';
+import { chartSeries, chartSeriesSets, seriesSummary, niceTicks, metricsFor, defaultTitle, hasRpeData, workoutTotals } from '../js/lib/stats.js';
 import { w, warm, item, workout } from './helpers.js';
 
 const DAY = 86400000;
@@ -85,4 +85,34 @@ test('workoutTotals', () => {
   assert.equal(totals.volume, 670);
   assert.equal(totals.prCount, 1);
   assert.equal(totals.durationMs, 45 * 60000);
+});
+
+test('Körpergewicht nach Messart in getrennte Reihen, Auswahl und feste Reihenfolge', () => {
+  const bodyweights = [
+    { date: '2026-10-20', kg: 80, state: 'fasted' },
+    { date: '2026-10-21', kg: 81.5, state: 'fed' },
+    { date: '2026-10-22', kg: 79.8, state: 'fasted' },
+    { date: '2026-10-23', kg: 80.6 }, // ohne Angabe = Normal
+  ];
+  const base = { source: { kind: 'bodyweight' }, metric: 'kg', range: 'all', chartType: 'line' };
+  const all = chartSeriesSets(base, { workouts: [], bodyweights }, NOW);
+  assert.deepEqual(all.map((s) => [s.key, s.points.map((p) => p.y)]), [
+    ['fasted', [80, 79.8]],
+    ['neutral', [80.6]],
+    ['fed', [81.5]],
+  ]);
+  const picked = chartSeriesSets({ ...base, states: ['fed', 'fasted'] }, { workouts: [], bodyweights }, NOW);
+  assert.deepEqual(picked.map((s) => s.key), ['fasted', 'fed']);
+  assert.equal(picked[0].label, 'Nüchtern');
+});
+
+test('Andere Quellen haben genau eine Reihe', () => {
+  const sets = chartSeriesSets(chart(), data, NOW);
+  assert.equal(sets.length, 1);
+  assert.deepEqual(sets[0].points.map((p) => p.y), [45, 50]);
+});
+
+test('Titelvorschlag mit genau einer Messart', () => {
+  assert.equal(defaultTitle({ source: { kind: 'bodyweight' }, metric: 'kg', states: ['fasted'] }), 'Körpergewicht · Nüchtern');
+  assert.equal(defaultTitle({ source: { kind: 'bodyweight' }, metric: 'kg', states: ['fasted', 'fed'] }), 'Körpergewicht');
 });

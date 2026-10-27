@@ -31,6 +31,25 @@ export const CHART_TYPES = {
   bar: 'Balken',
 };
 
+/** Messart beim Körpergewicht. Vergleichbar sind nur Werte derselben Messart. Standard: „Normal“. */
+export const BODYWEIGHT_STATES = {
+  fasted: 'Nüchtern',
+  neutral: 'Normal',
+  fed: 'Nach dem Essen',
+};
+
+export const DEFAULT_BODYWEIGHT_STATE = 'neutral';
+
+export function bodyweightSeriesKey(entry) {
+  return entry.state ?? DEFAULT_BODYWEIGHT_STATE;
+}
+
+/** Ausgewählte Messarten eines Körpergewicht-Diagramms in fester Reihenfolge (ohne Auswahl: alle). */
+export function selectedBodyweightSeries(chart) {
+  const keys = Object.keys(BODYWEIGHT_STATES);
+  return chart.states?.length ? keys.filter((key) => chart.states.includes(key)) : keys;
+}
+
 const HOUR_MS = 60 * 60 * 1000;
 
 /** Kennzahlen eines Workouts. Volumen nur aus Arbeitssätzen. */
@@ -69,6 +88,9 @@ export function metricsFor(kind, { hasRpe = false } = {}) {
 
 export function defaultTitle(chart, exerciseName = '') {
   if (chart.source.kind === 'exercise') return `${exerciseName} · ${METRICS[chart.metric]?.label ?? ''}`;
+  if (chart.source.kind === 'bodyweight' && chart.states?.length === 1) {
+    return `${SOURCES.bodyweight} · ${BODYWEIGHT_STATES[chart.states[0]]}`;
+  }
   return SOURCES[chart.source.kind];
 }
 
@@ -124,6 +146,21 @@ export function chartSeries(chart, { workouts, bodyweights }, now = Date.now()) 
   }
 
   return points.sort((a, b) => a.x - b.x);
+}
+
+/**
+ * Datenreihen eines Diagramms: [{ key, label, points }].
+ * Körpergewicht wird nach Messart aufgeteilt, alle anderen Quellen haben genau eine Reihe.
+ */
+export function chartSeriesSets(chart, data, now = Date.now()) {
+  if (chart.source.kind !== 'bodyweight') {
+    return [{ key: 'main', label: METRICS[chart.metric]?.label ?? '', points: chartSeries(chart, data, now) }];
+  }
+  return selectedBodyweightSeries(chart).map((key) => ({
+    key,
+    label: BODYWEIGHT_STATES[key],
+    points: chartSeries(chart, { ...data, bodyweights: data.bodyweights.filter((e) => bodyweightSeriesKey(e) === key) }, now),
+  }));
 }
 
 /** Letzter Wert und Änderung im Zeitraum (erster → letzter Punkt). */

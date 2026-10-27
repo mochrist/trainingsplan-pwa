@@ -77,10 +77,11 @@ workouts    { id, name, templateId|null, status: 'active'|'finished',
             Index: startedAt, status
 Set         { id, type: 'work'|'warmup', weight|null, reps|null, rpe|null,
               note, done, doneAt|null }
-bodyweights { date: 'YYYY-MM-DD' (keyPath), kg }
+bodyweights { date: 'YYYY-MM-DD' (keyPath), kg, state: 'fasted'|'neutral'|'fed' }
 charts      { id, title,
               source: { kind: 'exercise'|'bodyweight'|'duration', exerciseId? },
-              metric, range: '4w'|'3m'|'6m'|'1y'|'all', chartType: 'line'|'bar', order }
+              metric, range: '4w'|'3m'|'6m'|'1y'|'all', chartType: 'line'|'bar', order,
+              states?: ['fasted'|'neutral'|'fed', …] }   // nur Körpergewicht, fehlt = alle
 kv          { key, value }
             'settings'  → { restSeconds: 90, weightStep: 2.5, rpeEnabled: false,
                             backupReminderDays: 14 }                   (wird exportiert)
@@ -182,13 +183,15 @@ Regeln:
 
 ### 6.13 Körpergewicht
 - Eintrag auf „Heute" (kleine Karte): Gewicht in kg, ein Eintrag pro Tag (erneutes Eintragen am selben Tag überschreibt, ein einfaches `put` mit `date` als Schlüssel).
+- Messart pro Eintrag über drei Buttons: **Nüchtern**, **Normal** (Standard, vorausgewählt), **Nach dem Essen**. Hintergrund: Mageninhalt, Flüssigkeit und Glykogen verschieben das Gewicht über den Tag um 0,5–2 kg. Vergleichbar sind nur Werte derselben Messart, am aussagekräftigsten ist morgens nüchtern.
+- Einträge ohne Messart (Daten vor Version 2) gelten als „Normal“.
 - Verlauf lässt sich in einem Sheet ansehen, bearbeiten und löschen.
 - Ist Datenquelle für den Diagramm-Baukasten.
 
 ### 6.14 Diagramm-Baukasten
 - Tab „Fortschritt": Liste der gespeicherten Diagramme, dazu ein Button „+ Diagramm".
 - **Builder** (Bottom-Sheet) in vier Schritten:
-  1. **Datenquelle:** Übung (über `exercise-picker`), Körpergewicht oder Trainingsdauer
+  1. **Datenquelle:** Übung (über `exercise-picker`), Körpergewicht oder Trainingsdauer. Bei Körpergewicht zusätzlich Mehrfachauswahl der Messarten.
   2. **Metrik** (abhängig von der Quelle)
      - Übung: Maximalgewicht, Gesamtvolumen (Σ Gewicht × Wiederholungen), geschätztes 1RM (bester Wert je Training), Wiederholungen gesamt, Ø RPE (nur wenn RPE-Daten existieren)
      - Körpergewicht: kg
@@ -196,6 +199,7 @@ Regeln:
   3. **Zeitraum:** 4 Wochen, 3 Monate, 6 Monate, 1 Jahr, Alles
   4. **Typ:** Linie oder Balken
 - Ein Datenpunkt entspricht einem Training (bei Körpergewicht einem Tag). Aufwärmsätze zählen nicht.
+- Körpergewicht-Diagramme zeigen jede ausgewählte Messart als eigene Reihe in eigener Farbe (übereinander). Die Auswahl lässt sich direkt am Diagramm per Chips umschalten und wird gespeichert, mindestens eine Messart bleibt aktiv. Für getrennte Diagramme legt man mehrere an (Titelvorschlag z. B. „Körpergewicht · Nüchtern“).
 - Der Titel wird automatisch vorgeschlagen (z. B. „High Row · Maximalgewicht") und ist änderbar.
 - Gespeicherte Diagramme sind sitzungsübergreifend in `charts` abgelegt und werden beim Start wieder gerendert. Pro Diagramm gibt es ein Menü: Bearbeiten, Nach oben oder unten, Löschen.
 - Beim ersten Start gibt es zwei Standard-Diagramme, die nicht von Übungen abhängen: Körpergewicht und Trainingsdauer.

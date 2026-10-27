@@ -4,6 +4,7 @@ import { openDatabase, readAll, write, keyOf, STORES } from './db.js';
 import { cleanName, normalizeName, findByName } from './lib/normalize.js';
 import { usageStats } from './lib/history.js';
 import { computePRs } from './lib/pr.js';
+import { DEFAULT_BODYWEIGHT_STATE } from './lib/stats.js';
 import { newId } from './lib/html.js';
 import { createItem, createWorkout, finalizeWorkout } from './lib/workout.js';
 import { roundWeight } from './lib/numbers.js';
@@ -338,10 +339,13 @@ export function getBodyweight(date) {
   return cache.bodyweights.get(date) ?? null;
 }
 
-/** Ein Eintrag pro Tag: erneutes Eintragen überschreibt. */
-export async function setBodyweight(date, kg) {
+/**
+ * Ein Eintrag pro Tag: erneutes Eintragen überschreibt.
+ * @param state Messart: 'fasted' | 'neutral' | 'fed' (Standard „Normal“)
+ */
+export async function setBodyweight(date, kg, state = DEFAULT_BODYWEIGHT_STATE) {
   if (!(kg > 0)) throw new Error('Bitte ein gültiges Gewicht eingeben.');
-  return commit([put('bodyweights', { date, kg: roundWeight(kg) })]);
+  return commit([put('bodyweights', { date, kg: roundWeight(kg), state })]);
 }
 
 export function deleteBodyweight(date) {

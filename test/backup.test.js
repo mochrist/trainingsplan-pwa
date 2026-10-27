@@ -16,9 +16,9 @@ function sampleData() {
       workout(1000, [item('row', [warm(20, 10), w(42.5, 8, { rpe: 8.5, note: 'gut' })])]),
       workout(5000, [item('press', [w(null, null, { done: false })])], { status: 'active', endedAt: null }),
     ],
-    bodyweights: [{ date: '2026-10-27', kg: 80.4 }],
+    bodyweights: [{ date: '2026-10-27', kg: 80.4, state: 'fasted' }],
     charts: [
-      { id: 'c1', title: 'Körpergewicht', source: { kind: 'bodyweight' }, metric: 'kg', range: '3m', chartType: 'line', order: 0 },
+      { id: 'c1', title: 'Körpergewicht', source: { kind: 'bodyweight' }, metric: 'kg', range: '3m', chartType: 'line', order: 0, states: ['fasted', 'neutral'] },
       { id: 'c2', title: 'High Row', source: { kind: 'exercise', exerciseId: 'row' }, metric: 'e1rm', range: 'all', chartType: 'bar', order: 1 },
     ],
     settings: { restSeconds: 120, weightStep: 1.25, rpeEnabled: true, backupReminderDays: 7 },
@@ -62,7 +62,10 @@ test('Struktur- und Referenzfehler werden erkannt', () => {
     (d) => { d.workouts[0].items[0].sets[0].reps = 'zehn'; },
     (d) => { d.workouts[0].endedAt = null; },
     (d) => { d.workouts.push({ ...d.workouts[1], id: 'second-active' }); },
-    (d) => { d.bodyweights.push({ date: '2026-10-27', kg: 81 }); },
+    (d) => { d.bodyweights.push({ date: '2026-10-27', kg: 81, state: 'neutral' }); },
+    (d) => { d.bodyweights[0].state = 'hungrig'; },
+    (d) => { d.charts[0].states = []; },
+    (d) => { d.charts[0].states = ['none']; },
     (d) => { d.charts[0].metric = 'maxWeight'; },
     (d) => { d.settings.backupReminderDays = 3; },
     (d) => { delete d.settings; },
@@ -72,6 +75,13 @@ test('Struktur- und Referenzfehler werden erkannt', () => {
     mutate(data);
     assert.throws(() => parseBackup(JSON.stringify(buildBackup(data))), /beschädigt/, mutate.toString());
   }
+});
+
+test('Backup der Version 1: Körpergewicht ohne Messart wird zu „Normal“', () => {
+  const data = sampleData();
+  data.bodyweights = [{ date: '2026-10-26', kg: 80.1 }];
+  const parsed = parseBackup(JSON.stringify({ app: 'trainingsplan', schemaVersion: 1, exportedAt: 1, data }));
+  assert.deepEqual(parsed.data.bodyweights, [{ date: '2026-10-26', kg: 80.1, state: 'neutral' }]);
 });
 
 test('Erinnerung: nie exportiert, aber Änderungen und ein abgeschlossenes Training', () => {
