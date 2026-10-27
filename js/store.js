@@ -8,6 +8,7 @@ import { DEFAULT_BODYWEIGHT_STATE } from './lib/stats.js';
 import { newId } from './lib/html.js';
 import { createItem, createWorkout, finalizeWorkout } from './lib/workout.js';
 import { roundWeight } from './lib/numbers.js';
+import { classifyExercise, sortMuscles } from './lib/catalog.js';
 
 const STARTER_EXERCISES = [
   'Bankdrücken (Langhantel)',
@@ -94,9 +95,7 @@ export function getKv(key) {
 
 async function seed() {
   const now = Date.now();
-  const ops = STARTER_EXERCISES.map((name, i) =>
-    put('exercises', { id: newId(), name, nameNorm: normalizeName(name), note: '', archived: false, createdAt: now + i }),
-  );
+  const ops = STARTER_EXERCISES.map((name, i) => put('exercises', newExercise(name, now + i)));
   DEFAULT_CHARTS.forEach((chart, order) => ops.push(put('charts', { id: newId(), ...chart, order })));
   if (!getKv('settings')) ops.push(kvOp('settings', { ...DEFAULT_SETTINGS }));
   ops.push(kvOp('seeded', true));
@@ -131,6 +130,10 @@ export function exerciseName(id) {
   return getExercise(id)?.name ?? 'Unbekannte Übung';
 }
 
+function newExercise(name, createdAt = Date.now()) {
+  return { id: newId(), name, nameNorm: normalizeName(name), note: '', archived: false, createdAt, ...classifyExercise(name) };
+}
+
 export function getExerciseUsage() {
   return usageStats([...cache.workouts.values()]);
 }
@@ -147,9 +150,37 @@ export async function createExercise(name) {
     if (existing.archived) await commit([put('exercises', { ...existing, archived: false })]);
     return getExercise(existing.id);
   }
-  const exercise = { id: newId(), name: clean, nameNorm: normalizeName(clean), note: '', archived: false, createdAt: Date.now() };
+  const exercise = newExercise(clean);
   await commit([put('exercises', exercise)]);
   return exercise;
+}
+
+/**
+ * Übungen eines Trainingsvorschlags bereitstellen: Katalogübungen werden in einer Transaktion angelegt
+ * (bzw. eine gleichnamige archivierte Übung wieder aktiviert).
+ * @param picks [{ exerciseId|null, name }]
+ * @returns exerciseIds in derselben Reihenfolge
+ */
+export async function ensureExercises(picks) {
+  const ops = [];
+  const ids = picks.map((pick, i) => {
+    const existing = (pick.exerciseId && getExercise(pick.exerciseId)) || findByName(getExercises(), pick.name);
+    if (existing) {
+      if (existing.archived) ops.push(put('exercises', { ...existing, archived: false }));
+      return existing.id;
+    }
+    const exercise = newExercise(cleanName(pick.name), Date.now() + i);
+    ops.push(put('exercises', exercise));
+    return exercise.id;
+  });
+  if (ops.length) await commit(ops);
+  return ids;
+}
+
+/** Hauptmuskelgruppe (muscles[0]), weitere Muskelgruppen und Grundübung ändern. */
+export function updateExerciseMuscles(id, { primary, secondary = [], compound }) {
+  const muscles = primary ? [primary, ...sortMuscles(secondary.filter((m) => m !== primary))] : [];
+  return commit([put('exercises', { ...getExercise(id), muscles, compound: Boolean(compound) })]);
 }
 
 export async function renameExercise(id, name) {
@@ -197,11 +228,12 @@ export function getTemplate(id) {
   return cache.templates.get(id) ?? null;
 }
 
-export async function createTemplate(name) {
+export async function createTemplate(name, exerciseIds = []) {
   const clean = cleanName(name);
   if (!clean) throw new Error('Bitte einen Namen eingeben.');
   const now = Date.now();
-  const template = { id: newId(), name: clean, items: [], createdAt: now, updatedAt: now };
+  const items = exerciseIds.map((exerciseId) => ({ id: newId(), exerciseId, plannedSets: DEFAULT_PLANNED_SETS }));
+  const template = { id: newId(), name: clean, items, createdAt: now, updatedAt: now };
   await commit([put('templates', template)]);
   return template;
 }
@@ -256,13 +288,17 @@ export function getActiveWorkout() {
   return getWorkouts().find((w) => w.status === 'active') ?? null;
 }
 
-export async function startWorkout({ templateId = null } = {}) {
+/**
+ * Startet ein Training aus einem Template, aus einer Übungsliste (Trainingsvorschlag) oder leer.
+ * @param exerciseIds Übungen mit je DEFAULT_PLANNED_SETS leeren Sätzen (ohne Template)
+ */
+export async function startWorkout({ templateId = null, exerciseIds = [], name = 'Training' } = {}) {
   if (getActiveWorkout()) throw new Error('Es läuft bereits ein Training.');
   const template = templateId ? getTemplate(templateId) : null;
   const items = template
     ? template.items.filter((item) => getExercise(item.exerciseId)).map((item) => createItem(item.exerciseId, item.plannedSets))
-    : [];
-  const workout = createWorkout({ name: template?.name ?? 'Training', templateId: template?.id ?? null, items });
+    : exerciseIds.filter((id) => getExercise(id)).map((id) => createItem(id, DEFAULT_PLANNED_SETS));
+  const workout = createWorkout({ name: template?.name ?? (cleanName(name) || 'Training'), templateId: template?.id ?? null, items });
   await commit([put('workouts', workout)]);
   return workout;
 }

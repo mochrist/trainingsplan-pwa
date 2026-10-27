@@ -8,6 +8,7 @@ import { navigate } from '../nav.js';
 import { shouldRemind, SNOOZE_MS } from '../lib/backup.js';
 import { exportBackup } from '../components/backup-actions.js';
 import { BODYWEIGHT_STATES, DEFAULT_BODYWEIGHT_STATE } from '../lib/stats.js';
+import { openSuggestionSheet } from '../components/suggest-sheet.js';
 
 /** Auswahl der Messart (genau eine, Standard „Normal“). */
 function renderStateChoice(current = DEFAULT_BODYWEIGHT_STATE) {
@@ -92,6 +93,10 @@ export function render(root) {
               </button>`,
           )
           .join('')}
+        <button type="button" class="start-btn start-btn-suggest" data-action="suggest" ${active ? 'disabled' : ''}>
+          <span class="start-btn-title">Vorschlag</span>
+          <span class="muted small">Übungen nach Muskelgruppe</span>
+        </button>
         <button type="button" class="start-btn start-btn-free" data-start="" ${active ? 'disabled' : ''}>
           <span class="start-btn-title">Freitext-Training</span>
           <span class="muted small">Übungen frei wählen</span>
@@ -135,6 +140,10 @@ export function render(root) {
   container.addEventListener('click', async (event) => {
     if (handleStateClick(event)) return;
     const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'suggest') {
+      if (!event.target.closest('[data-action]').disabled) openSuggestionSheet({ onChange: () => render(root) });
+      return;
+    }
     if (action === 'bw-history') {
       openBodyweightHistory(() => render(root));
       return;

@@ -2,7 +2,7 @@
 //
 // Wichtig (Safari): Innerhalb einer Transaktion nur IDB-Requests abwarten, keine anderen Promises.
 // Sonst committet Safari die Transaktion vorzeitig. write() stellt deshalb alle Requests synchron.
-import { DATA_VERSION, migrateBodyweightV1 } from './lib/migrate.js';
+import { DATA_VERSION, migrateBodyweightV1, migrateExerciseV2 } from './lib/migrate.js';
 
 const DB_NAME = 'trainingsplan';
 
@@ -12,6 +12,15 @@ const KEY_PATHS = { bodyweights: 'date', kv: 'key' };
 
 export function keyOf(store, record) {
   return record[KEY_PATHS[store] ?? 'id'];
+}
+
+function updateAll(objectStore, transform) {
+  objectStore.openCursor().onsuccess = (event) => {
+    const cursor = event.target.result;
+    if (!cursor) return;
+    cursor.update(transform(cursor.value));
+    cursor.continue();
+  };
 }
 
 function upgrade(db, oldVersion, tx) {
@@ -26,15 +35,9 @@ function upgrade(db, oldVersion, tx) {
     db.createObjectStore('charts', { keyPath: 'id' });
     db.createObjectStore('kv', { keyPath: 'key' });
   }
-  if (oldVersion >= 1 && oldVersion < 2) {
-    // Datenumbau mit derselben Funktion wie beim Import alter Backups
-    tx.objectStore('bodyweights').openCursor().onsuccess = (event) => {
-      const cursor = event.target.result;
-      if (!cursor) return;
-      cursor.update(migrateBodyweightV1(cursor.value));
-      cursor.continue();
-    };
-  }
+  // Datenumbau mit denselben Funktionen wie beim Import alter Backups
+  if (oldVersion >= 1 && oldVersion < 2) updateAll(tx.objectStore('bodyweights'), migrateBodyweightV1);
+  if (oldVersion >= 1 && oldVersion < 3) updateAll(tx.objectStore('exercises'), migrateExerciseV2);
   // Spätere Versionen: Stores und Indizes hier ändern, Datenumbau über lib/migrate.js.
 }
 

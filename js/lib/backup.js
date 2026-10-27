@@ -2,6 +2,7 @@
 import { DATA_VERSION, migrate } from './migrate.js';
 import { dayKey } from './time.js';
 import { SOURCES, METRICS, RANGES, CHART_TYPES, BODYWEIGHT_STATES } from './stats.js';
+import { MUSCLES } from './catalog.js';
 
 export const APP_ID = 'trainingsplan';
 export const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
@@ -85,6 +86,10 @@ function validate(data) {
   for (const e of data.exercises) {
     check(isObject(e) && isNonEmptyString(e.id) && isNonEmptyString(e.name) && isNonEmptyString(e.nameNorm), 'ungültige Übung');
     check(typeof e.archived === 'boolean' && isString(e.note) && isNumber(e.createdAt), `ungültige Übung „${e.name}“`);
+    check(
+      Array.isArray(e.muscles) && e.muscles.every((m) => m in MUSCLES) && new Set(e.muscles).size === e.muscles.length && typeof e.compound === 'boolean',
+      `Übung „${e.name}“ mit ungültigen Muskelgruppen`,
+    );
   }
   checkUnique(data.exercises.map((e) => e.id), 'doppelte Übungs-IDs');
   checkUnique(data.exercises.map((e) => e.nameNorm), 'doppelte Übungsnamen');

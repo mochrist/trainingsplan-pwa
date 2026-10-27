@@ -5,6 +5,7 @@ import { openSheet, confirmDialog, promptDialog } from '../components/sheet.js';
 import { toast, toastError } from '../components/toast.js';
 import { pickExercise } from '../components/exercise-picker.js';
 import { navigate } from '../nav.js';
+import { MUSCLES } from '../lib/catalog.js';
 
 let libraryQuery = '';
 let showArchived = false;
@@ -121,6 +122,7 @@ function renderExerciseList() {
         <li>
           <button type="button" class="list-item" data-action="open-exercise" data-id="${esc(e.id)}">
             <span class="list-item-title">${esc(e.name)}</span>
+            ${e.muscles?.length ? `<span class="muted small">${esc(MUSCLES[e.muscles[0]])}</span>` : ''}
             ${e.archived ? '<span class="badge">archiviert</span>' : ''}
             ${e.note ? '<span class="muted list-item-sub">' + esc(e.note) + '</span>' : ''}
           </button>
@@ -160,6 +162,7 @@ function openExerciseSheet(id, onChange) {
           <span>Notiz (z. B. Sitzhöhe, Griffbreite)</span>
           <textarea name="note" rows="3">${esc(exercise.note)}</textarea>
         </label>
+        <div data-muscles></div>
         <div class="stack">
           <button type="button" class="btn btn-block" data-action="archive">
             ${exercise.archived ? 'Wiederherstellen' : 'Archivieren'}
@@ -184,6 +187,7 @@ function openExerciseSheet(id, onChange) {
       });
 
       noteEl = body.querySelector('[name="note"]');
+      mountMuscleEditor(body.querySelector('[data-muscles]'), id);
 
       body.querySelector('[data-action="archive"]').addEventListener('click', async () => {
         try {
@@ -205,6 +209,68 @@ function openExerciseSheet(id, onChange) {
       });
     },
   });
+}
+
+/** Muskelgruppen einer Übung (für den Trainingsvorschlag). Jede Änderung wird sofort gespeichert. */
+function mountMuscleEditor(container, id) {
+  function draw() {
+    const { muscles = [], compound = false } = store.getExercise(id);
+    const [primary, ...secondary] = muscles;
+    container.innerHTML = `
+      <p class="field-label">Hauptmuskelgruppe</p>
+      <div class="chip-row" role="radiogroup" aria-label="Hauptmuskelgruppe">
+        ${Object.entries(MUSCLES)
+          .map(([key, label]) => `<button type="button" role="radio" class="state-chip" data-primary="${key}" aria-checked="${key === primary}">${esc(label)}</button>`)
+          .join('')}
+      </div>
+      ${
+        primary
+          ? `<p class="field-label">Weitere Muskelgruppen</p>
+            <div class="chip-row">
+              ${Object.entries(MUSCLES)
+                .filter(([key]) => key !== primary)
+                .map(([key, label]) => `<button type="button" class="state-chip chip-multi" data-secondary="${key}" aria-pressed="${secondary.includes(key)}">${esc(label)}</button>`)
+                .join('')}
+            </div>
+            <label class="switch-row">
+              <input type="checkbox" data-compound ${compound ? 'checked' : ''}>
+              <span>Grundübung (mehrgelenkig, kommt im Vorschlag zuerst)</span>
+            </label>`
+          : '<p class="muted small">Ohne Muskelgruppe wird die Übung nicht vorgeschlagen.</p>'
+      }
+    `;
+  }
+
+  async function save(change) {
+    const { muscles = [], compound = false } = store.getExercise(id);
+    const [primary = null, ...secondary] = muscles;
+    try {
+      await store.updateExerciseMuscles(id, { primary, secondary, compound, ...change });
+    } catch (err) {
+      toastError(err);
+    }
+    draw();
+  }
+
+  container.addEventListener('click', (event) => {
+    const primaryChip = event.target.closest('[data-primary]');
+    const secondaryChip = event.target.closest('[data-secondary]');
+    const current = store.getExercise(id).muscles ?? [];
+    if (primaryChip) {
+      const key = primaryChip.dataset.primary;
+      // Erneutes Tippen auf die Hauptmuskelgruppe entfernt die Zuordnung
+      save(key === current[0] ? { primary: null, secondary: [] } : { primary: key, secondary: current.slice(1).filter((m) => m !== key) });
+    } else if (secondaryChip) {
+      const key = secondaryChip.dataset.secondary;
+      const secondary = current.slice(1);
+      save({ secondary: secondary.includes(key) ? secondary.filter((m) => m !== key) : [...secondary, key] });
+    }
+  });
+  container.addEventListener('change', (event) => {
+    if (event.target.matches('[data-compound]')) save({ compound: event.target.checked });
+  });
+
+  draw();
 }
 
 // ---------- Template-Editor ----------

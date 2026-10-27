@@ -50,6 +50,7 @@ Private Trainingsplan- und Workout-Tracker-App fürs iPhone als Progressive Web 
 - Körpergewicht-Tracking
 - Diagramm-Baukasten (selbst gebaute, gespeicherte Diagramme)
 - Backup-Erinnerung
+- Trainingsvorschlag nach Muskelgruppen (offline, regelbasiert)
 
 ## 4. Navigation
 
@@ -68,8 +69,11 @@ Das aktive Workout ist eine Vollbild-Ansicht über den Tabs.
 Datenbankname `trainingsplan`, Version = `DATA_VERSION` (siehe 2.1).
 
 ```
-exercises   { id, name, nameNorm, note, archived, createdAt }
+exercises   { id, name, nameNorm, note, archived, createdAt,
+              muscles: [MuscleKey, …], compound: boolean }   // muscles[0] = Hauptmuskelgruppe, [] = keine
             Index: nameNorm (unique)
+MuscleKey   'chest'|'back'|'shoulders'|'biceps'|'triceps'|'forearms'|'abs'|
+            'quads'|'hamstrings'|'glutes'|'calves'
 templates   { id, name, items: [{ id, exerciseId, plannedSets }], createdAt, updatedAt }
 workouts    { id, name, templateId|null, status: 'active'|'finished',
               startedAt, endedAt|null, updatedAt,
@@ -100,6 +104,7 @@ Regeln:
 - Es gibt höchstens ein Workout mit `status: 'active'`. Das setzt `store.startWorkout()` durch.
 - **Abgeschlossene Workouts enthalten nur Sätze mit `done: true`** (siehe 6.3 und 6.12).
 - **Zahlen:** Gewicht und kg werden beim Speichern auf 2 Nachkommastellen gerundet. Die ±-Schritte werden in Hundertstel-Ganzzahlen gerechnet, damit keine Fließkommafehler entstehen. `weight = 0` gilt als ausgefüllt (Körpergewichtsübungen), nur `null` gilt als leer.
+- **Muskelgruppen:** Neue Übungen bekommen `muscles` und `compound` aus dem Katalog (6.16), sonst geschätzt über Stichwörter im Namen, sonst `[]`. Migration v2 → v3 macht dasselbe für bestehende Übungen. Umbenennen ändert die Zuordnung nicht.
 - **Erststart:** Starterübungen (6.1) und Standard-Diagramme (6.14) werden nur angelegt, wenn `kv.seeded` fehlt. Danach wird `seeded` gesetzt, auch nach einem Import.
 
 ## 6. Spezifikation der Features
@@ -112,7 +117,7 @@ Regeln:
 - Gibt es keinen exakten Treffer (nach Normalisierung), erscheint zusätzlich der Eintrag „„<Eingabe>" neu anlegen". Dubletten wie „High Row" und „high row" werden verhindert.
 - Archivierte Übungen werden nicht vorgeschlagen. Wird ein Name eingegeben, dessen `nameNorm` zu einer archivierten Übung gehört, wird diese wieder aktiviert statt neu angelegt.
 - Eine kleine Starterliste wird beim ersten Start angelegt: Bankdrücken (Langhantel), Schrägbankdrücken (Kurzhantel), Schulterdrücken (Kurzhantel), Seitheben (Kurzhantel), Butterfly (Maschine), Trizepsdrücken (Kabel), Latzug, High Row, Rudern am Kabel (sitzend), Face Pulls, Bizeps-Curls (SZ-Stange), Reverse Butterfly.
-- Verwaltung im Tab „Pläne": suchen, umbenennen (Name bleibt eindeutig, eine Kollision wird auch mit archivierten Übungen geprüft und mit klarer Meldung abgelehnt), Notiz bearbeiten, archivieren. Löschen ist nur erlaubt, wenn die Übung in keinem Workout, Template oder Diagramm vorkommt.
+- Verwaltung im Tab „Pläne": suchen, umbenennen (Name bleibt eindeutig, eine Kollision wird auch mit archivierten Übungen geprüft und mit klarer Meldung abgelehnt), Notiz bearbeiten, Muskelgruppen festlegen (Hauptmuskelgruppe, weitere, Grundübung ja/nein), archivieren. Löschen ist nur erlaubt, wenn die Übung in keinem Workout, Template oder Diagramm vorkommt.
 
 ### 6.2 Templates
 - Ein Template hat einen Namen und eine geordnete Übungsliste. Pro Übung gibt es `plannedSets` (Default 3).
@@ -217,6 +222,15 @@ Regeln:
   - `snoozedUntil` nicht in der Zukunft liegt.
 - „Später" setzt `snoozedUntil` auf +3 Tage. In den Einstellungen lässt sich das Intervall wählen (7, 14, 30 Tage, aus), und es gibt dort außerdem Export und Import.
 
+### 6.16 Trainingsvorschlag
+- Button „Vorschlag“ im Tab „Training“ öffnet ein Sheet: Fokus wählen (Push, Pull, Beine, Arme, Oberkörper, Ganzkörper) oder Muskelgruppen frei kombinieren, Anzahl Übungen 3–8 (Standard 5).
+- **Empfehlung:** Vorausgewählt ist der Split (Push/Pull/Beine), dessen Muskelgruppen am längsten nicht trainiert wurden (nur abgeschlossene Trainings, nach Hauptmuskelgruppe). Ohne Historie: Push.
+- **Kandidaten:** eigene, nicht archivierte Übungen mit Muskelgruppe plus Katalogübungen (`js/lib/catalog.js`, ca. 75 Einträge), die es unter diesem Namen noch nicht gibt. Eine archivierte eigene Übung blendet den gleichnamigen Katalogeintrag aus.
+- **Auswahl:** Plätze werden reihum auf die Muskelgruppen verteilt (nach Hauptmuskelgruppe). Pro Platz gewinnt der beste Score: eigene Übung +0,5, bereits trainiert +1 + log₂(1 + Anzahl) (max. +3), in den letzten 3 Tagen trainiert −3, Grundübung +0,5, Zufall 0–1,5. Pro Muskelgruppe höchstens eine Grundübung, solange Isolationsübungen verfügbar sind. Grundübungen stehen vorne.
+- Im Vorschlag: Übung tauschen (gleiche Muskelgruppe), entfernen, neu würfeln. Jede Zeile zeigt die letzten Werte bzw. „neu aus dem Katalog“.
+- „Starten“ legt Katalogübungen in einer Transaktion an und startet ein normales Training (je 3 leere Sätze, Name = Fokus). „Als Template“ speichert die Liste als Template.
+- Keine KI: Alles läuft lokal und regelbasiert in `js/lib/suggest.js` (getestet).
+
 ## 7. Projektstruktur
 
 ```
@@ -243,9 +257,12 @@ Regeln:
 │   │   ├── history.js          # "Letzte Werte", Nutzungsstatistik
 │   │   ├── time.js             # Formatierung, Kalenderlogik
 │   │   ├── migrate.js          # DATA_VERSION, migrate(data, fromVersion)
+│   │   ├── catalog.js          # Muskelgruppen, Übungskatalog, Zuordnung von Namen
+│   │   ├── suggest.js          # Trainingsvorschlag und Empfehlung
 │   │   └── backup.js           # Exportformat, Validierung, Erinnerungslogik
 │   ├── components/
 │   │   ├── exercise-picker.js
+│   │   ├── suggest-sheet.js    # Sheet „Training vorschlagen“
 │   │   ├── workout-editor.js   # Übungen und Satzzeilen (Live-Workout und Bearbeiten)
 │   │   ├── rest-timer.js
 │   │   ├── chart.js

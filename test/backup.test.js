@@ -8,7 +8,7 @@ import { w, warm, item, workout } from './helpers.js';
 const DAY = 86400000;
 
 function sampleData() {
-  const exercise = (id, name) => ({ id, name, nameNorm: normalizeName(name), note: '', archived: false, createdAt: 1 });
+  const exercise = (id, name) => ({ id, name, nameNorm: normalizeName(name), note: '', archived: false, createdAt: 1, muscles: ['back', 'biceps'], compound: true });
   return {
     exercises: [exercise('row', 'High Row'), { ...exercise('press', 'Bankdrücken'), note: 'Bank 3', archived: true }],
     templates: [{ id: 't1', name: 'Pull', items: [{ id: 'ti1', exerciseId: 'row', plannedSets: 3 }], createdAt: 1, updatedAt: 2 }],
@@ -64,6 +64,9 @@ test('Struktur- und Referenzfehler werden erkannt', () => {
     (d) => { d.workouts.push({ ...d.workouts[1], id: 'second-active' }); },
     (d) => { d.bodyweights.push({ date: '2026-10-27', kg: 81, state: 'neutral' }); },
     (d) => { d.bodyweights[0].state = 'hungrig'; },
+    (d) => { d.exercises[0].muscles = ['arme']; },
+    (d) => { d.exercises[0].muscles = ['back', 'back']; },
+    (d) => { delete d.exercises[0].compound; },
     (d) => { d.charts[0].states = []; },
     (d) => { d.charts[0].states = ['none']; },
     (d) => { d.charts[0].metric = 'maxWeight'; },
@@ -82,6 +85,17 @@ test('Backup der Version 1: Körpergewicht ohne Messart wird zu „Normal“', (
   data.bodyweights = [{ date: '2026-10-26', kg: 80.1 }];
   const parsed = parseBackup(JSON.stringify({ app: 'trainingsplan', schemaVersion: 1, exportedAt: 1, data }));
   assert.deepEqual(parsed.data.bodyweights, [{ date: '2026-10-26', kg: 80.1, state: 'neutral' }]);
+});
+
+test('Backup der Version 2: Übungen bekommen Muskelgruppen', () => {
+  const data = sampleData();
+  data.exercises = data.exercises.map(({ muscles, compound, ...rest }) => rest);
+  data.exercises.push({ id: 'own', name: 'Kurzhantel Curl am Kabel', nameNorm: normalizeName('Kurzhantel Curl am Kabel'), note: '', archived: false, createdAt: 1 });
+  const parsed = parseBackup(JSON.stringify({ app: 'trainingsplan', schemaVersion: 2, exportedAt: 1, data }));
+  const byId = Object.fromEntries(parsed.data.exercises.map((e) => [e.id, e]));
+  assert.deepEqual([byId.row.muscles, byId.row.compound], [['back', 'biceps'], true]);
+  assert.deepEqual([byId.press.muscles, byId.press.compound], [['chest'], true]);
+  assert.deepEqual([byId.own.muscles, byId.own.compound], [['biceps'], false]);
 });
 
 test('Erinnerung: nie exportiert, aber Änderungen und ein abgeschlossenes Training', () => {

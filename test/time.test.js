@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   dayKey, parseDayKey, monthGrid, addMonths, formatDuration, formatMinutes, formatDateShort,
-  combineDateTime, rangeStart,
+  combineDateTime, rangeStart, formatDaysAgo,
 } from '../js/lib/time.js';
 
 test('monthGrid beginnt am Montag und enthält ganze Wochen', () => {
@@ -76,4 +76,11 @@ test('rangeStart', () => {
   assert.equal(rangeStart('3m', now), new Date(2026, 6, 27).getTime());
   assert.equal(rangeStart('1y', now), new Date(2025, 9, 27).getTime());
   assert.equal(rangeStart('all', now), -Infinity);
+});
+
+test('formatDaysAgo nach Kalendertagen, auch über die Zeitumstellung', () => {
+  const now = new Date(2026, 9, 27, 8).getTime();
+  assert.equal(formatDaysAgo(new Date(2026, 9, 27, 0, 5).getTime(), now), 'heute');
+  assert.equal(formatDaysAgo(new Date(2026, 9, 26, 23, 50).getTime(), now), 'gestern');
+  assert.equal(formatDaysAgo(new Date(2026, 9, 20, 18).getTime(), now), 'vor 7 Tagen');
 });

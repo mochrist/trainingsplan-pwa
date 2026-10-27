@@ -1538,3 +1538,57 @@ body.has-rest-timer .view {
 .builder-hint {
   margin: 12px 0 0;
 }
+
+/* ---------- Trainingsvorschlag und Muskelgruppen ---------- */
+
+.field-label {
+  margin: 16px 0 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.state-chip.chip-multi[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.suggest-hint {
+  margin: 0 0 12px;
+}
+
+.suggest-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 12px;
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.suggest-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggest-item-name {
+  font-weight: 500;
+}
+
+.start-btn-suggest {
+  border-color: var(--accent);
+}

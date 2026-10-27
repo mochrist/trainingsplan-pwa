@@ -44,6 +44,14 @@ export function formatDateShort(ts) {
   return `${WEEKDAYS_SHORT[d.getDay()]}, ${pad(d.getDate())}.${pad(d.getMonth() + 1)}.`;
 }
 
+/** „heute“, „gestern“, „vor 3 Tagen“ (nach Kalendertagen). */
+export function formatDaysAgo(ts, now = Date.now()) {
+  const days = Math.round((parseDayKey(dayKey(now)) - parseDayKey(dayKey(ts))) / DAY_MS);
+  if (days <= 0) return 'heute';
+  if (days === 1) return 'gestern';
+  return `vor ${days} Tagen`;
+}
+
 /** "22.10.2026" */
 export function formatDate(ts) {
   const d = new Date(ts);
